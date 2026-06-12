@@ -30,21 +30,25 @@ export const useDashboardData = () => {
   return useQuery<DashboardData>({
     queryKey: ['dashboardData'],
     queryFn: async () => {
-      // Fetch multiple categories in parallel for a rich home page
-      const [hindiTracks, punjabiTracks, englishTracks] = await Promise.all([
-        fetchTrendingTracks('latest hindi hits', 20),
-        fetchTrendingTracks('punjabi hits', 20),
-        fetchTrendingTracks('global top 50 english', 20)
+      // Fetch multiple categories in parallel for a rich home page with hundreds of songs
+      const [hindiTracks, punjabiTracks, englishTracks, arijitTracks, lofiTracks] = await Promise.all([
+        fetchTrendingTracks('top bollywood 2024', 50),
+        fetchTrendingTracks('latest punjabi', 50),
+        fetchTrendingTracks('global top 50 english', 50),
+        fetchTrendingTracks('arijit singh hits', 50),
+        fetchTrendingTracks('lofi chill hindi', 50)
       ]);
       
       const formattedHindi: Song[] = Array.isArray(hindiTracks) ? hindiTracks.map(mapSaavnTrackToSong) : [];
       const formattedPunjabi: Song[] = Array.isArray(punjabiTracks) ? punjabiTracks.map(mapSaavnTrackToSong) : [];
       const formattedEnglish: Song[] = Array.isArray(englishTracks) ? englishTracks.map(mapSaavnTrackToSong) : [];
+      const formattedArijit: Song[] = Array.isArray(arijitTracks) ? arijitTracks.map(mapSaavnTrackToSong) : [];
+      const formattedLofi: Song[] = Array.isArray(lofiTracks) ? lofiTracks.map(mapSaavnTrackToSong) : [];
 
       const featuredPlaylist: Playlist = {
         id: 'featured-1',
-        title: 'Bollywood Top 20',
-        description: 'The hottest Hindi tracks right now.',
+        title: 'Bollywood Mega Hits',
+        description: 'The absolute hottest Hindi tracks trending right now across all platforms.',
         coverUrl: formattedHindi[0]?.coverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop',
         category: 'Trending Now',
         songs: formattedHindi
@@ -52,13 +56,21 @@ export const useDashboardData = () => {
 
       const sections: SectionData[] = [
         {
-          title: 'Top Hits',
+          title: 'Top Albums & Playlists',
           playlists: [
+            {
+              id: 'hits-arijit',
+              title: 'Arijit Singh Essentials',
+              description: 'The king of romance.',
+              coverUrl: formattedArijit[0]?.coverUrl || 'https://picsum.photos/300',
+              category: 'Trending Now',
+              songs: formattedArijit
+            },
             {
               id: 'hits-punjabi',
               title: 'Punjabi Fire',
               description: 'The most played Punjabi tracks.',
-              coverUrl: formattedPunjabi[0]?.coverUrl || 'https://picsum.photos/300',
+              coverUrl: formattedPunjabi[0]?.coverUrl || 'https://picsum.photos/301',
               category: 'Trending Now',
               songs: formattedPunjabi
             },
@@ -66,30 +78,67 @@ export const useDashboardData = () => {
               id: 'hits-english',
               title: 'Global Top 50',
               description: 'International chart toppers.',
-              coverUrl: formattedEnglish[0]?.coverUrl || 'https://picsum.photos/301',
+              coverUrl: formattedEnglish[0]?.coverUrl || 'https://picsum.photos/302',
               category: 'Trending Now',
               songs: formattedEnglish
+            },
+            {
+              id: 'hits-lofi',
+              title: 'Hindi Lofi & Chill',
+              description: 'Relax with lo-fi beats.',
+              coverUrl: formattedLofi[0]?.coverUrl || 'https://picsum.photos/303',
+              category: 'Trending Now',
+              songs: formattedLofi
             }
           ]
         },
         {
-          title: 'Discover New Music',
+          title: 'More Bollywood & Hindi',
           playlists: [
             {
               id: 'discover-1',
               title: 'Fresh Hindi Finds',
               description: 'New Hindi tracks you might like.',
-              coverUrl: formattedHindi[10]?.coverUrl || 'https://picsum.photos/302',
+              coverUrl: formattedHindi[10]?.coverUrl || 'https://picsum.photos/304',
               category: 'New Releases',
-              songs: formattedHindi.slice(10, 20)
+              songs: formattedHindi.slice(10, 30)
             },
             {
               id: 'discover-2',
+              title: 'Bollywood Party',
+              description: 'Dance to these hits.',
+              coverUrl: formattedHindi[20]?.coverUrl || 'https://picsum.photos/305',
+              category: 'New Releases',
+              songs: formattedHindi.slice(20, 40)
+            },
+            {
+              id: 'discover-3',
+              title: 'Heartbreak Hits',
+              description: 'Sad songs for the soul.',
+              coverUrl: formattedArijit[10]?.coverUrl || 'https://picsum.photos/306',
+              category: 'New Releases',
+              songs: formattedArijit.slice(10, 30)
+            }
+          ]
+        },
+        {
+          title: 'Punjabi & Global',
+          playlists: [
+            {
+              id: 'punjabi-2',
               title: 'Punjabi Underground',
               description: 'Hidden gems from Punjab.',
-              coverUrl: formattedPunjabi[10]?.coverUrl || 'https://picsum.photos/303',
+              coverUrl: formattedPunjabi[10]?.coverUrl || 'https://picsum.photos/307',
               category: 'New Releases',
-              songs: formattedPunjabi.slice(10, 20)
+              songs: formattedPunjabi.slice(10, 30)
+            },
+            {
+              id: 'english-2',
+              title: 'Pop Hits',
+              description: 'The biggest English pop tracks.',
+              coverUrl: formattedEnglish[10]?.coverUrl || 'https://picsum.photos/308',
+              category: 'New Releases',
+              songs: formattedEnglish.slice(10, 30)
             }
           ]
         }

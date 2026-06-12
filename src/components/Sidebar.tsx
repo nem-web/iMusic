@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="flex flex-col w-64 bg-black h-full p-2 gap-2">
+    <div className="hidden md:flex flex-col w-64 bg-black h-full p-2 gap-2">
       <div className="bg-background-highlight rounded-lg p-4 flex flex-col gap-4">
         <Link to="/" className="flex items-center gap-4 text-text-subdued hover:text-text-bright transition-colors font-bold">
           <Home size={24} />
