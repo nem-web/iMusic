@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1fdf64;
+  --color-background-base: #121212;
+  --color-background-highlight: #1a1a1a;
+  --color-background-press: #000000;
+  --color-background-elevated: #242424;
+  --color-text-base: #ffffff;
+  --color-text-subdued: #b3b3b3;
+  --color-text-bright: #ffffff;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background-base text-text-base selection:bg-primary selection:text-black;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* We'll use custom scroll areas */
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+.glass-effect {
+  @apply bg-white/5 backdrop-blur-md border border-white/10;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:bg-background-elevated hover:scale-[1.02];
+}
+

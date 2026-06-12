@@ -1,0 +1,73 @@
+{
+  "featured": {
+    "title": "BPM Supreme",
+    "description": "The biggest hits from the world's best DJs and producers. Curated just for you.",
+    "coverUrl": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop"
+  },
+  "sections": [
+    {
+      "title": "Trending Now",
+      "playlists": [
+        {
+          "id": "trending-1",
+          "title": "Global Top 50",
+          "description": "Your daily update of the most played tracks right now.",
+          "coverUrl": "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=300&auto=format&fit=crop",
+          "category": "Trending Now"
+        },
+        {
+          "id": "trending-2",
+          "title": "Viral Hits",
+          "description": "The songs that the internet is talking about.",
+          "coverUrl": "https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=300&auto=format&fit=crop",
+          "category": "Trending Now"
+        },
+        {
+          "id": "trending-3",
+          "title": "Chart Toppers",
+          "description": "The current kings and queens of the charts.",
+          "coverUrl": "https://images.unsplash.com/photo-1514525253361-bee8718a74a2?q=80&w=300&auto=format&fit=crop",
+          "category": "Trending Now"
+        }
+      ]
+    },
+    {
+      "title": "Made For You",
+      "playlists": [
+        {
+          "id": "mfy-1",
+          "title": "Daily Mix 1",
+          "description": "M83, The Midnight, and more.",
+          "coverUrl": "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=300&auto=format&fit=crop",
+          "category": "Made For You"
+        },
+        {
+          "id": "mfy-2",
+          "title": "Discover Weekly",
+          "description": "New music based on your listening habits.",
+          "coverUrl": "https://images.unsplash.com/photo-1494232410401-ad00d5433cfa?q=80&w=300&auto=format&fit=crop",
+          "category": "Made For You"
+        }
+      ]
+    },
+    {
+      "title": "Mood Mixes",
+      "playlists": [
+        {
+          "id": "mood-1",
+          "title": "Lofi Lounge",
+          "description": "Relax and focus with these beats.",
+          "coverUrl": "https://images.unsplash.com/photo-1516280440614-37939bbacd81?q=80&w=300&auto=format&fit=crop",
+          "category": "Mood Mixes"
+        },
+        {
+          "id": "mood-2",
+          "title": "Late Night Drive",
+          "description": "Synthwave and neon vibes for the road.",
+          "coverUrl": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?q=80&w=300&auto=format&fit=crop",
+          "category": "Mood Mixes"
+        }
+      ]
+    }
+  ]
+}
