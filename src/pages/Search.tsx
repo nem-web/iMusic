@@ -1,32 +1,64 @@
-import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, X, Play } from 'lucide-react';
-import { useDashboardData } from '../hooks/useDashboardData';
-import type { Playlist } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Search as SearchIcon, X, Play, Clock, Pause } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { searchTracks, getAudiusHost } from '../services/audiusClient';
+import type { Song } from '../types';
 import { usePlayerStore } from '../store/usePlayerStore';
+import debounce from 'lodash.debounce';
+
+const mapAudiusTrackToSong = (track: any, host: string): Song => ({
+  id: track.id,
+  title: track.title,
+  artist: track.user?.name || 'Unknown Artist',
+  album: 'Single',
+  duration: track.duration,
+  url: `${host}/v1/tracks/${track.id}/stream?app_name=spotify_clone_modern`,
+  coverUrl: track.artwork?.['480x480'] || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
+});
 
 const Search: React.FC = () => {
-  const { data } = useDashboardData();
-  const { setTrack, setQueue } = usePlayerStore();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { setTrack, setQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore();
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  const allPlaylists = useMemo(() => {
-    if (!data) return [];
-    return data.sections.flatMap(section => section.playlists);
-  }, [data]);
+  // Debounce the search input
+  useEffect(() => {
+    const handler = debounce((value: string) => {
+      setDebouncedQuery(value);
+    }, 500);
+    handler(searchInput);
+    return () => handler.cancel();
+  }, [searchInput]);
 
-  const filteredResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
-    return allPlaylists.filter(playlist => 
-      playlist.title.toLowerCase().includes(query) || 
-      playlist.description.toLowerCase().includes(query)
-    );
-  }, [searchQuery, allPlaylists]);
+  const { data: searchResults, isLoading } = useQuery<Song[]>({
+    queryKey: ['searchTracks', debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) return [];
+      const host = await getAudiusHost();
+      const validHost = host || 'https://discoveryprovider.audius.co';
+      const rawTracks = await searchTracks(debouncedQuery, 20);
+      return rawTracks.map((track: any) => mapAudiusTrackToSong(track, validHost));
+    },
+    enabled: !!debouncedQuery.trim()
+  });
 
-  const handlePlay = (playlist: Playlist) => {
-    if (!playlist.songs || playlist.songs.length === 0) return;
-    setQueue(playlist.songs);
-    setTrack(playlist.songs[0]);
+  const handlePlay = (song: Song) => {
+    if (currentTrack?.id === song.id) {
+      togglePlay();
+    } else {
+      if (searchResults) {
+        setQueue(searchResults);
+      } else {
+        setQueue([song]);
+      }
+      setTrack(song);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -37,14 +69,14 @@ const Search: React.FC = () => {
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-text-subdued group-focus-within:text-text-bright transition-colors" size={20} />
           <input 
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="What do you want to listen to?"
-            className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#242424] border border-transparent focus:border-white/20 p-3 pl-12 rounded-full outline-none transition-all"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search for songs, artists, or genres..."
+            className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#242424] border border-transparent focus:border-white/20 p-3 pl-12 rounded-full outline-none transition-all text-text-bright"
           />
-          {searchQuery && (
+          {searchInput && (
             <button 
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchInput('')}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-text-subdued hover:text-text-bright transition-colors"
             >
               <X size={20} />
@@ -53,52 +85,93 @@ const Search: React.FC = () => {
         </div>
       </div>
 
-      {!searchQuery ? (
+      {!debouncedQuery ? (
         <div>
-          <h2 className="text-2xl font-bold mb-6">Browse all</h2>
+          <h2 className="text-2xl font-bold mb-6 text-text-bright">Browse all</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {['Pop', 'Hip-Hop', 'Rock', 'Electronic', 'Jazz', 'Classical', 'Chill', 'Workout', 'Mood', 'Party'].map((genre, i) => (
+            {['Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock', 'Jazz', 'Chill', 'Workout', 'Mood', 'Party'].map((genre, i) => (
               <div 
                 key={genre}
-                className="aspect-square p-4 rounded-lg cursor-pointer overflow-hidden relative group transition-transform active:scale-95 shadow-xl"
+                onClick={() => setSearchInput(genre)}
+                className="aspect-square p-4 rounded-lg cursor-pointer overflow-hidden relative group transition-transform hover:scale-105 active:scale-95 shadow-xl"
                 style={{ backgroundColor: `hsl(${i * 40}, 60%, 40%)` }}
               >
-                <h3 className="text-2xl font-black tracking-tight">{genre}</h3>
-                <img 
-                  src={`https://picsum.photos/seed/${genre}/200/200`} 
-                  className="absolute bottom-0 right-0 w-24 h-24 rotate-[25deg] translate-x-4 translate-y-4 group-hover:scale-110 transition-transform duration-500 shadow-2xl"
-                  alt={genre}
-                />
+                <h3 className="text-2xl font-black tracking-tight text-white">{genre}</h3>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div>
-          {filteredResults.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {filteredResults.map(playlist => (
-                <div 
-                  key={playlist.id}
-                  className="bg-background-highlight p-4 rounded-md card-hover group cursor-pointer"
-                >
-                  <div className="relative mb-4 aspect-square overflow-hidden rounded-md shadow-2xl">
-                    <img src={playlist.coverUrl} alt={playlist.title} className="object-cover w-full h-full" />
-                    <button 
-                      onClick={() => handlePlay(playlist)}
-                      className="absolute bottom-2 right-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-xl"
-                    >
-                      <Play size={24} fill="currentColor" className="ml-0.5" />
-                    </button>
+        <div className="pb-24">
+          <h2 className="text-2xl font-bold mb-6 text-text-bright">Top Results</h2>
+          
+          {isLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-2 rounded-md bg-white/5 animate-pulse">
+                  <div className="w-12 h-12 bg-white/10 rounded-sm" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-white/10 rounded w-1/4" />
+                    <div className="h-3 bg-white/10 rounded w-1/6" />
                   </div>
-                  <h3 className="font-bold text-sm truncate mb-1">{playlist.title}</h3>
-                  <p className="text-xs text-text-subdued line-clamp-2 leading-relaxed">{playlist.description}</p>
                 </div>
               ))}
             </div>
+          ) : searchResults && searchResults.length > 0 ? (
+            <div className="flex flex-col w-full">
+              <div className="grid grid-cols-[16px_minmax(120px,_1fr)_minmax(120px,_1fr)_minmax(120px,_1fr)_minmax(50px,_80px)] gap-4 px-4 py-2 text-text-subdued border-b border-white/10 text-sm">
+                <div className="text-center">#</div>
+                <div>Title</div>
+                <div className="hidden md:block">Artist</div>
+                <div className="hidden md:block">Album</div>
+                <div className="flex justify-end"><Clock size={16} /></div>
+              </div>
+              
+              <div className="mt-2 space-y-1">
+                {searchResults.map((song, index) => {
+                  const isCurrentSong = currentTrack?.id === song.id;
+                  
+                  return (
+                    <div 
+                      key={song.id}
+                      onClick={() => handlePlay(song)}
+                      className={`grid grid-cols-[16px_minmax(120px,_1fr)_minmax(120px,_1fr)_minmax(120px,_1fr)_minmax(50px,_80px)] gap-4 px-4 py-2 rounded-md hover:bg-white/10 group cursor-pointer items-center transition-colors ${isCurrentSong ? 'bg-white/5' : ''}`}
+                    >
+                      <div className="text-center text-text-subdued relative w-4 h-4 flex items-center justify-center">
+                        <span className={`group-hover:opacity-0 ${isCurrentSong ? 'text-primary' : ''}`}>
+                          {index + 1}
+                        </span>
+                        <button className="absolute inset-0 opacity-0 group-hover:opacity-100 flex items-center justify-center text-text-bright">
+                           {isCurrentSong && isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <img src={song.coverUrl} alt={song.title} className="w-10 h-10 object-cover rounded-sm shrink-0" />
+                        <span className={`truncate text-sm font-medium ${isCurrentSong ? 'text-primary' : 'text-text-bright'}`}>
+                          {song.title}
+                        </span>
+                      </div>
+                      
+                      <div className="hidden md:block truncate text-sm text-text-subdued group-hover:text-text-bright">
+                        {song.artist}
+                      </div>
+                      
+                      <div className="hidden md:block truncate text-sm text-text-subdued group-hover:text-text-bright">
+                        {song.album}
+                      </div>
+                      
+                      <div className="text-right text-sm text-text-subdued">
+                        {formatTime(song.duration)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-[40vh] text-center">
-              <h2 className="text-2xl font-bold mb-2">No results found for "{searchQuery}"</h2>
+              <h2 className="text-2xl font-bold mb-2 text-text-bright">No results found for "{debouncedQuery}"</h2>
               <p className="text-text-subdued text-sm">Please check your spelling or try different keywords.</p>
             </div>
           )}

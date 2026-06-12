@@ -2,7 +2,7 @@ import React from 'react';
 import { Play, Pause } from 'lucide-react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { usePlayerStore } from '../store/usePlayerStore';
-import type { Song, Playlist } from '../types';
+import type { Playlist } from '../types';
 
 interface CardProps {
   playlist: Playlist;
@@ -22,35 +22,15 @@ const MediaCard: React.FC<CardProps> = ({ playlist, isLoading }) => {
     );
   }
 
-  // Mock songs for now - in Phase 3/4 we'd fetch these
-  const mockSongs: Song[] = [
-    {
-      id: `${playlist.id}-song-1`,
-      title: `${playlist.title} Track 1`,
-      artist: "Spotify Clone Artist",
-      album: playlist.title,
-      duration: 243,
-      coverUrl: playlist.coverUrl,
-      url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    },
-    {
-      id: `${playlist.id}-song-2`,
-      title: `${playlist.title} Track 2`,
-      artist: "Spotify Clone Artist",
-      album: playlist.title,
-      duration: 210,
-      coverUrl: playlist.coverUrl,
-      url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
-    }
-  ];
-
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (currentTrack?.id === mockSongs[0].id) {
+    if (!playlist.songs || playlist.songs.length === 0) return;
+    
+    if (currentTrack?.id === playlist.songs[0].id) {
       togglePlay();
     } else {
-      setQueue(mockSongs);
-      setTrack(mockSongs[0]);
+      setQueue(playlist.songs);
+      setTrack(playlist.songs[0]);
     }
   };
 
