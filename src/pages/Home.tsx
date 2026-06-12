@@ -105,22 +105,13 @@ const Home: React.FC = () => {
   }
 
   const handleHeroPlay = () => {
-    if (data?.featured) {
-      const heroSong: Song = {
-        id: 'hero-song',
-        title: data.featured.title,
-        artist: "Featured Artist",
-        album: data.featured.title,
-        duration: 300,
-        coverUrl: data.featured.coverUrl,
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
-      };
-      
-      if (currentTrack?.id === 'hero-song') {
+    if (data?.featured && data.featured.songs && data.featured.songs.length > 0) {
+      const firstSong = data.featured.songs[0];
+      if (currentTrack?.id === firstSong.id) {
         togglePlay();
       } else {
-        setQueue([heroSong]);
-        setTrack(heroSong);
+        setQueue(data.featured.songs);
+        setTrack(firstSong);
       }
     }
   };

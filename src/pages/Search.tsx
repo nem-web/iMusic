@@ -24,20 +24,9 @@ const Search: React.FC = () => {
   }, [searchQuery, allPlaylists]);
 
   const handlePlay = (playlist: Playlist) => {
-    // Mock songs for now
-    const mockSongs = [
-      {
-        id: `${playlist.id}-song-1`,
-        title: `${playlist.title} Track 1`,
-        artist: "Spotify Clone Artist",
-        album: playlist.title,
-        duration: 243,
-        coverUrl: playlist.coverUrl,
-        url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-      }
-    ];
-    setQueue(mockSongs);
-    setTrack(mockSongs[0]);
+    if (!playlist.songs || playlist.songs.length === 0) return;
+    setQueue(playlist.songs);
+    setTrack(playlist.songs[0]);
   };
 
   return (
