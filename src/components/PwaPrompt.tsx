@@ -18,12 +18,8 @@ const PwaPrompt: React.FC = () => {
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
       
-      // Check if we've already shown the prompt this session/recently
-      const hasDismissed = localStorage.getItem('pwaPromptDismissed');
-      if (!hasDismissed) {
-        // Delay showing prompt slightly for better UX
-        setTimeout(() => setShowPrompt(true), 2000);
-      }
+      // Always show prompt for testing/immediate feedback
+      setShowPrompt(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -54,14 +50,12 @@ const PwaPrompt: React.FC = () => {
 
   const handleDismiss = () => {
     setShowPrompt(false);
-    // Remember that user dismissed it so we don't spam them
-    localStorage.setItem('pwaPromptDismissed', 'true');
   };
 
   if (!showPrompt) return null;
 
   return createPortal(
-    <div className="fixed bottom-4 md:bottom-28 right-4 z-[9999] bg-[#242424] border border-white/10 shadow-2xl rounded-xl p-4 flex items-start gap-4 max-w-sm animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-24 md:bottom-32 right-4 z-[9999] bg-[#242424] border border-white/10 shadow-2xl rounded-xl p-4 flex items-start gap-4 max-w-sm animate-in slide-in-from-bottom-5">
       <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shrink-0 shadow-lg">
         <Download size={24} className="text-black" />
       </div>

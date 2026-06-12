@@ -9,20 +9,35 @@ interface DashboardData {
 
 // Helper to map JioSaavn track to our Song interface
 const mapSaavnTrackToSong = (track: any): Song => {
-  // Decode HTML entities if needed, though mostly handled by React
-  let cleanUrl = track.url || '';
-  if (cleanUrl.includes('preview.saavncdn.com')) {
-    cleanUrl = cleanUrl.replace('preview.saavncdn.com', 'aac.saavncdn.com').replace('_96_p', '_320');
-  }
+  const getHighQualityUrl = () => {
+    if (track.downloadUrl && track.downloadUrl.length > 0) {
+      return track.downloadUrl[track.downloadUrl.length - 1].url;
+    }
+    return '';
+  };
+
+  const getHighQualityImage = () => {
+    if (track.image && track.image.length > 0) {
+      return track.image[track.image.length - 1].url;
+    }
+    return 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
+  };
+
+  const getArtists = () => {
+    if (track.artists?.primary && track.artists.primary.length > 0) {
+      return track.artists.primary.map((a: any) => a.name).join(', ');
+    }
+    return 'Unknown Artist';
+  };
 
   return {
     id: track.id,
-    title: track.title.replace(/&quot;/g, '"'),
-    artist: track.artists || track.subtitle || 'Unknown Artist',
-    album: track.album || 'Single',
-    duration: parseInt(track.duration, 10),
-    url: cleanUrl,
-    coverUrl: track.image?.replace('50x50', '500x500') || track.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
+    title: (track.name || track.title || 'Unknown').replace(/&quot;/g, '"'),
+    artist: getArtists(),
+    album: track.album?.name || 'Single',
+    duration: parseInt(track.duration, 10) || 0,
+    url: getHighQualityUrl(),
+    coverUrl: getHighQualityImage()
   };
 };
 
@@ -30,20 +45,48 @@ export const useDashboardData = () => {
   return useQuery<DashboardData>({
     queryKey: ['dashboardData'],
     queryFn: async () => {
-      // Fetch multiple categories in parallel for a rich home page with hundreds of songs
-      const [hindiTracks, punjabiTracks, englishTracks, arijitTracks, lofiTracks] = await Promise.all([
-        fetchTrendingTracks('top bollywood 2024', 50),
-        fetchTrendingTracks('latest punjabi', 50),
-        fetchTrendingTracks('global top 50 english', 50),
-        fetchTrendingTracks('arijit singh hits', 50),
-        fetchTrendingTracks('lofi chill hindi', 50)
-      ]);
+      // Fetch massive amounts of data for a rich library (1000+ tracks total potential)
+      const fetchCategories = [
+        fetchTrendingTracks('top bollywood 2024', 100),
+        fetchTrendingTracks('latest punjabi', 100),
+        fetchTrendingTracks('global top 50 english', 100),
+        fetchTrendingTracks('arijit singh hits', 100),
+        fetchTrendingTracks('lofi chill hindi', 100),
+        fetchTrendingTracks('shreya ghoshal', 100),
+        fetchTrendingTracks('90s bollywood romantic', 100),
+        fetchTrendingTracks('honey singh badshah', 100),
+        fetchTrendingTracks('gym workout bass', 100),
+        fetchTrendingTracks('bhajan devotional', 100)
+      ];
+
+      const results = await Promise.all(fetchCategories);
       
-      const formattedHindi: Song[] = Array.isArray(hindiTracks) ? hindiTracks.map(mapSaavnTrackToSong) : [];
-      const formattedPunjabi: Song[] = Array.isArray(punjabiTracks) ? punjabiTracks.map(mapSaavnTrackToSong) : [];
-      const formattedEnglish: Song[] = Array.isArray(englishTracks) ? englishTracks.map(mapSaavnTrackToSong) : [];
-      const formattedArijit: Song[] = Array.isArray(arijitTracks) ? arijitTracks.map(mapSaavnTrackToSong) : [];
-      const formattedLofi: Song[] = Array.isArray(lofiTracks) ? lofiTracks.map(mapSaavnTrackToSong) : [];
+      // Helper to deduplicate tracks by title
+      const deduplicate = (tracks: any[]) => {
+        if (!Array.isArray(tracks)) return [];
+        const unique = [];
+        const seen = new Set();
+        for (const t of tracks) {
+          const s = mapSaavnTrackToSong(t);
+          const title = s.title.toLowerCase().trim();
+          if (!seen.has(title)) {
+            seen.add(title);
+            unique.push(s);
+          }
+        }
+        return unique;
+      };
+
+      const formattedHindi = deduplicate(results[0]);
+      const formattedPunjabi = deduplicate(results[1]);
+      const formattedEnglish = deduplicate(results[2]);
+      const formattedArijit = deduplicate(results[3]);
+      const formattedLofi = deduplicate(results[4]);
+      const formattedShreya = deduplicate(results[5]);
+      const formatted90s = deduplicate(results[6]);
+      const formattedRap = deduplicate(results[7]);
+      const formattedWorkout = deduplicate(results[8]);
+      const formattedDevotional = deduplicate(results[9]);
 
       const featuredPlaylist: Playlist = {
         id: 'featured-1',
@@ -56,7 +99,7 @@ export const useDashboardData = () => {
 
       const sections: SectionData[] = [
         {
-          title: 'Top Albums & Playlists',
+          title: 'Top Albums & Artists',
           playlists: [
             {
               id: 'hits-arijit',
@@ -89,56 +132,51 @@ export const useDashboardData = () => {
               coverUrl: formattedLofi[0]?.coverUrl || 'https://picsum.photos/303',
               category: 'Trending Now',
               songs: formattedLofi
+            },
+            {
+              id: 'hits-shreya',
+              title: 'Shreya Ghoshal Melodies',
+              description: 'Queen of Indian playback.',
+              coverUrl: formattedShreya[0]?.coverUrl || 'https://picsum.photos/304',
+              category: 'Trending Now',
+              songs: formattedShreya
             }
           ]
         },
         {
-          title: 'More Bollywood & Hindi',
+          title: 'Moods & Eras',
           playlists: [
             {
-              id: 'discover-1',
-              title: 'Fresh Hindi Finds',
-              description: 'New Hindi tracks you might like.',
-              coverUrl: formattedHindi[10]?.coverUrl || 'https://picsum.photos/304',
-              category: 'New Releases',
-              songs: formattedHindi.slice(10, 30)
+              id: 'mood-90s',
+              title: '90s Bollywood Romance',
+              description: 'Nostalgic love songs.',
+              coverUrl: formatted90s[0]?.coverUrl || 'https://picsum.photos/305',
+              category: 'Mood Mixes',
+              songs: formatted90s
             },
             {
-              id: 'discover-2',
-              title: 'Bollywood Party',
-              description: 'Dance to these hits.',
-              coverUrl: formattedHindi[20]?.coverUrl || 'https://picsum.photos/305',
-              category: 'New Releases',
-              songs: formattedHindi.slice(20, 40)
+              id: 'mood-rap',
+              title: 'Desi Hip Hop',
+              description: 'Rap anthems and bangers.',
+              coverUrl: formattedRap[0]?.coverUrl || 'https://picsum.photos/306',
+              category: 'Mood Mixes',
+              songs: formattedRap
             },
             {
-              id: 'discover-3',
-              title: 'Heartbreak Hits',
-              description: 'Sad songs for the soul.',
-              coverUrl: formattedArijit[10]?.coverUrl || 'https://picsum.photos/306',
-              category: 'New Releases',
-              songs: formattedArijit.slice(10, 30)
-            }
-          ]
-        },
-        {
-          title: 'Punjabi & Global',
-          playlists: [
-            {
-              id: 'punjabi-2',
-              title: 'Punjabi Underground',
-              description: 'Hidden gems from Punjab.',
-              coverUrl: formattedPunjabi[10]?.coverUrl || 'https://picsum.photos/307',
-              category: 'New Releases',
-              songs: formattedPunjabi.slice(10, 30)
+              id: 'mood-workout',
+              title: 'Gym & Workout',
+              description: 'High energy tracks.',
+              coverUrl: formattedWorkout[0]?.coverUrl || 'https://picsum.photos/307',
+              category: 'Mood Mixes',
+              songs: formattedWorkout
             },
             {
-              id: 'english-2',
-              title: 'Pop Hits',
-              description: 'The biggest English pop tracks.',
-              coverUrl: formattedEnglish[10]?.coverUrl || 'https://picsum.photos/308',
-              category: 'New Releases',
-              songs: formattedEnglish.slice(10, 30)
+              id: 'mood-devotional',
+              title: 'Devotional & Bhajans',
+              description: 'Peaceful mornings.',
+              coverUrl: formattedDevotional[0]?.coverUrl || 'https://picsum.photos/308',
+              category: 'Mood Mixes',
+              songs: formattedDevotional
             }
           ]
         }

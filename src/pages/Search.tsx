@@ -7,19 +7,35 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import debounce from 'lodash.debounce';
 
 const mapSaavnTrackToSong = (track: any): Song => {
-  let cleanUrl = track.url || '';
-  if (cleanUrl.includes('preview.saavncdn.com')) {
-    cleanUrl = cleanUrl.replace('preview.saavncdn.com', 'aac.saavncdn.com').replace('_96_p', '_320');
-  }
+  const getHighQualityUrl = () => {
+    if (track.downloadUrl && track.downloadUrl.length > 0) {
+      return track.downloadUrl[track.downloadUrl.length - 1].url;
+    }
+    return '';
+  };
+
+  const getHighQualityImage = () => {
+    if (track.image && track.image.length > 0) {
+      return track.image[track.image.length - 1].url;
+    }
+    return 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
+  };
+
+  const getArtists = () => {
+    if (track.artists?.primary && track.artists.primary.length > 0) {
+      return track.artists.primary.map((a: any) => a.name).join(', ');
+    }
+    return 'Unknown Artist';
+  };
 
   return {
     id: track.id,
-    title: track.title.replace(/&quot;/g, '"'),
-    artist: track.artists || track.subtitle || 'Unknown Artist',
-    album: track.album || 'Single',
+    title: (track.name || track.title || 'Unknown').replace(/&quot;/g, '"'),
+    artist: getArtists(),
+    album: track.album?.name || 'Single',
     duration: parseInt(track.duration, 10) || 0,
-    url: cleanUrl,
-    coverUrl: track.image?.replace('50x50', '500x500') || track.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
+    url: getHighQualityUrl(),
+    coverUrl: getHighQualityImage()
   };
 };
 
@@ -41,9 +57,24 @@ const Search: React.FC = () => {
     queryKey: ['searchTracks', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery.trim()) return [];
-      const rawTracks = await searchTracks(debouncedQuery, 50); // Increased limit to 50
+      const rawTracks = await searchTracks(debouncedQuery, 50);
       if (!Array.isArray(rawTracks)) return [];
-      return rawTracks.map(mapSaavnTrackToSong);
+      
+      const mappedTracks = rawTracks.map(mapSaavnTrackToSong);
+      
+      // Deduplicate by title to avoid repeated variations of the same song
+      const uniqueTracks = [];
+      const seenTitles = new Set();
+      
+      for (const track of mappedTracks) {
+        const titleKey = track.title.toLowerCase().trim();
+        if (!seenTitles.has(titleKey)) {
+          seenTitles.add(titleKey);
+          uniqueTracks.push(track);
+        }
+      }
+      
+      return uniqueTracks;
     },
     enabled: !!debouncedQuery.trim()
   });
