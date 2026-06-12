@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTrendingTracks, getAudiusHost } from '../services/audiusClient';
+import { fetchTrendingTracks } from '../services/jiosaavnClient';
 import type { SectionData, Playlist, Song } from '../types';
 
 interface DashboardData {
@@ -7,38 +7,47 @@ interface DashboardData {
   sections: SectionData[];
 }
 
-// Helper to map Audius track to our Song interface
-const mapAudiusTrackToSong = (track: any): Song => ({
-  id: track.id,
-  title: track.title,
-  artist: track.user.name,
-  album: track.title,
-  duration: track.duration,
-  url: `https://discoveryprovider.audius.co/v1/tracks/${track.id}/stream?app_name=spotify_clone_modern`,
-  coverUrl: track.artwork?.['480x480'] || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
-});
+// Helper to map JioSaavn track to our Song interface
+const mapSaavnTrackToSong = (track: any): Song => {
+  // Decode HTML entities if needed, though mostly handled by React
+  let cleanUrl = track.url || '';
+  if (cleanUrl.includes('preview.saavncdn.com')) {
+    cleanUrl = cleanUrl.replace('preview.saavncdn.com', 'aac.saavncdn.com').replace('_96_p', '_320');
+  }
+
+  return {
+    id: track.id,
+    title: track.title.replace(/&quot;/g, '"'),
+    artist: track.artists || track.subtitle || 'Unknown Artist',
+    album: track.album || 'Single',
+    duration: parseInt(track.duration, 10),
+    url: cleanUrl,
+    coverUrl: track.image?.replace('50x50', '500x500') || track.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
+  };
+};
 
 export const useDashboardData = () => {
   return useQuery<DashboardData>({
     queryKey: ['dashboardData'],
     queryFn: async () => {
-      const host = await getAudiusHost();
-      const tracks = await fetchTrendingTracks(50);
+      // Fetch multiple categories in parallel for a rich home page
+      const [hindiTracks, punjabiTracks, englishTracks] = await Promise.all([
+        fetchTrendingTracks('latest hindi hits', 20),
+        fetchTrendingTracks('punjabi hits', 20),
+        fetchTrendingTracks('global top 50 english', 20)
+      ]);
       
-      // Update URLs to use the dynamic host
-      const formattedSongs: Song[] = tracks.map((track: any) => {
-        const song = mapAudiusTrackToSong(track);
-        song.url = `${host}/v1/tracks/${track.id}/stream?app_name=spotify_clone_modern`;
-        return song;
-      });
+      const formattedHindi: Song[] = Array.isArray(hindiTracks) ? hindiTracks.map(mapSaavnTrackToSong) : [];
+      const formattedPunjabi: Song[] = Array.isArray(punjabiTracks) ? punjabiTracks.map(mapSaavnTrackToSong) : [];
+      const formattedEnglish: Song[] = Array.isArray(englishTracks) ? englishTracks.map(mapSaavnTrackToSong) : [];
 
       const featuredPlaylist: Playlist = {
         id: 'featured-1',
-        title: 'Trending Now on Audius',
-        description: 'The hottest tracks on the decentralized network.',
-        coverUrl: formattedSongs[0]?.coverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop',
+        title: 'Bollywood Top 20',
+        description: 'The hottest Hindi tracks right now.',
+        coverUrl: formattedHindi[0]?.coverUrl || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&auto=format&fit=crop',
         category: 'Trending Now',
-        songs: formattedSongs.slice(0, 10)
+        songs: formattedHindi
       };
 
       const sections: SectionData[] = [
@@ -46,20 +55,20 @@ export const useDashboardData = () => {
           title: 'Top Hits',
           playlists: [
             {
-              id: 'hits-1',
-              title: 'Global Top 10',
-              description: 'The most played tracks right now.',
-              coverUrl: formattedSongs[10]?.coverUrl || 'https://picsum.photos/300',
+              id: 'hits-punjabi',
+              title: 'Punjabi Fire',
+              description: 'The most played Punjabi tracks.',
+              coverUrl: formattedPunjabi[0]?.coverUrl || 'https://picsum.photos/300',
               category: 'Trending Now',
-              songs: formattedSongs.slice(10, 20)
+              songs: formattedPunjabi
             },
             {
-              id: 'hits-2',
-              title: 'Viral Tracks',
-              description: 'Gaining momentum rapidly.',
-              coverUrl: formattedSongs[20]?.coverUrl || 'https://picsum.photos/301',
+              id: 'hits-english',
+              title: 'Global Top 50',
+              description: 'International chart toppers.',
+              coverUrl: formattedEnglish[0]?.coverUrl || 'https://picsum.photos/301',
               category: 'Trending Now',
-              songs: formattedSongs.slice(20, 30)
+              songs: formattedEnglish
             }
           ]
         },
@@ -68,19 +77,19 @@ export const useDashboardData = () => {
           playlists: [
             {
               id: 'discover-1',
-              title: 'Fresh Finds',
-              description: 'New tracks you might like.',
-              coverUrl: formattedSongs[30]?.coverUrl || 'https://picsum.photos/302',
+              title: 'Fresh Hindi Finds',
+              description: 'New Hindi tracks you might like.',
+              coverUrl: formattedHindi[10]?.coverUrl || 'https://picsum.photos/302',
               category: 'New Releases',
-              songs: formattedSongs.slice(30, 40)
+              songs: formattedHindi.slice(10, 20)
             },
             {
               id: 'discover-2',
-              title: 'Underground',
-              description: 'Hidden gems from Audius.',
-              coverUrl: formattedSongs[40]?.coverUrl || 'https://picsum.photos/303',
+              title: 'Punjabi Underground',
+              description: 'Hidden gems from Punjab.',
+              coverUrl: formattedPunjabi[10]?.coverUrl || 'https://picsum.photos/303',
               category: 'New Releases',
-              songs: formattedSongs.slice(40, 50)
+              songs: formattedPunjabi.slice(10, 20)
             }
           ]
         }

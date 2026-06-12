@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Search as SearchIcon, X, Play, Clock, Pause } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { searchTracks, getAudiusHost } from '../services/audiusClient';
+import { searchTracks } from '../services/jiosaavnClient';
 import type { Song } from '../types';
 import { usePlayerStore } from '../store/usePlayerStore';
 import debounce from 'lodash.debounce';
 
-const mapAudiusTrackToSong = (track: any, host: string): Song => ({
-  id: track.id,
-  title: track.title,
-  artist: track.user?.name || 'Unknown Artist',
-  album: 'Single',
-  duration: track.duration,
-  url: `${host}/v1/tracks/${track.id}/stream?app_name=spotify_clone_modern`,
-  coverUrl: track.artwork?.['480x480'] || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
-});
+const mapSaavnTrackToSong = (track: any): Song => {
+  let cleanUrl = track.url || '';
+  if (cleanUrl.includes('preview.saavncdn.com')) {
+    cleanUrl = cleanUrl.replace('preview.saavncdn.com', 'aac.saavncdn.com').replace('_96_p', '_320');
+  }
+
+  return {
+    id: track.id,
+    title: track.title.replace(/&quot;/g, '"'),
+    artist: track.artists || track.subtitle || 'Unknown Artist',
+    album: track.album || 'Single',
+    duration: parseInt(track.duration, 10) || 0,
+    url: cleanUrl,
+    coverUrl: track.image?.replace('50x50', '500x500') || track.image || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'
+  };
+};
 
 const Search: React.FC = () => {
   const { setTrack, setQueue, currentTrack, isPlaying, togglePlay } = usePlayerStore();
@@ -34,10 +41,9 @@ const Search: React.FC = () => {
     queryKey: ['searchTracks', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery.trim()) return [];
-      const host = await getAudiusHost();
-      const validHost = host || 'https://discoveryprovider.audius.co';
-      const rawTracks = await searchTracks(debouncedQuery, 20);
-      return rawTracks.map((track: any) => mapAudiusTrackToSong(track, validHost));
+      const rawTracks = await searchTracks(debouncedQuery, 50); // Increased limit to 50
+      if (!Array.isArray(rawTracks)) return [];
+      return rawTracks.map(mapSaavnTrackToSong);
     },
     enabled: !!debouncedQuery.trim()
   });
@@ -56,6 +62,7 @@ const Search: React.FC = () => {
   };
 
   const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return '0:00';
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
@@ -89,7 +96,7 @@ const Search: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold mb-6 text-text-bright">Browse all</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {['Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock', 'Jazz', 'Chill', 'Workout', 'Mood', 'Party'].map((genre, i) => (
+            {['Bollywood', 'Punjabi', 'Pop', 'Hip-Hop', 'Electronic', 'Lo-Fi', 'Rock', 'Jazz', 'Chill', 'Party'].map((genre, i) => (
               <div 
                 key={genre}
                 onClick={() => setSearchInput(genre)}
